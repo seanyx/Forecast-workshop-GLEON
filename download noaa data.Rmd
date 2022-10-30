@@ -1,0 +1,63 @@
+---
+title: "download the noaa data"
+output: html_document
+date: "2022-10-30"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+# TMP -> air_temperature (K)
+# PRES -> air_pressure (Pa)
+# RH -> relative_humidity (proportion)
+# DLWRF -> surface_downwelling_longwave_flux_in_air (W/m^2)
+# DSWRF -> surface_downwelling_shortwave_flux_in_air (W/m^2) 
+# APCP -> precipitation_flux (kg/(m^2 s))
+# VGRD -> eastward_wind (m/s)
+# UGRD -> northward_wind (m/s)
+
+vars = c("air_temperature", "air_pressure", "relative_humidity", "surface_downwelling_longwave_flux_in_air", "surface_downwelling_shortwave_flux_in_air",
+         "eastward_wind", "northward_wind")
+```
+
+## download future weather data
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# New forecast only available at 5am UTC the next day
+
+forecast_date <- Sys.Date() 
+noaa_date <- forecast_date - days(1)
+
+df_future <- neon4cast::noaa_stage2()
+
+noaa_future_allvars <- df_future |> 
+  dplyr::filter(reference_datetime == noaa_date,
+                datetime >= forecast_date,
+                site_id %in% lake_sites$field_site_id,
+                variable %in% vars) |> 
+  dplyr::collect()
+
+save(noaa_future_allvars, file = "dat/noaa_future_allvars.RData")
+```
+
+## download past weather data
+
+```{r}
+# past stacked weather
+df_past <- neon4cast::noaa_stage3()
+
+#Other variable names can be found at https://projects.ecoforecast.org/neon4cast-docs/Shared-Forecast-Drivers.html#stage-2
+
+noaa_past_allvars <- df_past |> 
+  dplyr::filter(site_id %in% lake_sites$field_site_id,
+                datetime >= ymd('2017-01-01'),
+                variable %in% vars) |> 
+  dplyr::collect()
+
+noaa_past_allvars
+
+save(noaa_past_allvars, file = "dat/noaa_past_allvars.RData")
+```
+
